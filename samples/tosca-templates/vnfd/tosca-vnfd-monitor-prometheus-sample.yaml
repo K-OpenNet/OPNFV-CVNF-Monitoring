@@ -1,0 +1,107 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Monitoring for multiple vdus and c-vdus
+
+metadata:
+  template_name: tosca-vnfd-monitor-prometheus-sample
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus: 2
+            mem_size: 2048 MB
+            disk_size: 20 GB
+      properties:
+        name: VDU1
+        image: ubuntu-16-04
+        availability_zone: nova
+        mgmt_driver: noop
+        config: |
+          param0: key1
+          param1: key2
+        user_data_format: RAW
+        user_data: |
+         cp /etc/hosts /etc/hosts.org
+         echo "127.0.0.1 localhost $HOSTNAME" > /etc/hosts
+         wget https://github.com/prometheus/node_exporter/releases/download/v0.15.2/node_exporter-0.15.2.linux-amd64.tar.gz
+         tar -xf node_exporter-0.15.2.linux-amd64.tar.gz
+         mv node_exporter-0.15.2.linux-amd64/node_exporter /usr/local/bin
+         useradd -rs /bin/false node_exporter
+         echo -e "[Unit]\nDescription=Node Exporter\nAfter=network.target\n\n[Service]\nUser=node_exporter\nGroup=node_exporter\nType=simple\nExecStart=/usr/local/bin/node_exporter\n\n[Install]\nWantedBy=multi-user.target" > /etc/systemd/system/node_exporter.service
+         systemctl daemon-reload
+         systemctl enable node_exporter
+         systemctl start node_exporter
+         echo 'ubuntu:ubuntu' | chpasswd
+         echo 'root:root' | chpasswd
+        prom_monitoring_policy:
+          name: prometheus
+          prometheus_server_ip: 192.168.10.254
+          prometheus_server_port: 9090
+          prometheus_server_targets_path: '/opt/prometheus/conf/tacker_targets.yml'
+          target_exporter_port: 9100
+          parameters:
+            alert:
+              alert_memory:
+                condition: node_memory_Active > 10000
+                for: 5s
+                labels:
+                  severity: major
+                annotations:
+                  summary: "High Memory Usage on {{ $labels.instance }}"
+                  identifier: "{{ $labels.instance }}"
+                  description: "{{ $labels.job }} Memory Usage: {{ $value }}"
+
+    CP11:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        order: 0
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    CP12:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        order: 1
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL2
+        - virtualBinding:
+            node: VDU1
+
+    CP13:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        order: 2
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL3
+        - virtualBinding:
+            node: VDU1
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net0
+        vendor: Tacker
+
+    VL3:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net1
+        vendor: Tacker
