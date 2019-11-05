@@ -11,3 +11,5 @@ COPY users.js .
 
 RUN yarn install
 VOLUME /stream
+
+CMD ["yarn", "start"]
