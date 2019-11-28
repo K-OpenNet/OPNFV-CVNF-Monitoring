@@ -112,6 +112,10 @@ class ToscaKubeObject(object):
     def annotations(self):
         return self._annotations
 
+    @annotations.setter
+    def annotations(self, annotations):
+        self._annotations = annotations
+
 class Container(object):
     """Container holds the basic structs of a container"""
     def __init__(self, name=None, num_cpus=None, mem_size=None, image=None,
