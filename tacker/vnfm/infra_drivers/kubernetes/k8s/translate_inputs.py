@@ -76,14 +76,25 @@ class Parser(object):
 
         # Initiate a list tosca_kube_object which are defined from VDU
         tosca_kube_objects = []
-        vdus = toscautils.findvdus(tosca)
+        vdus = oscautils.findvdus(tosca)
 
         for node_template in vdus:
             vdu_name = node_template.name
             tosca_kube_obj = self.tosca_to_kube_mapping(node_template)
 
             # Find network name in which VDU is attached
-            tosca_kube_obj.network_name = self.find_networks(tosca, vdu_name)
+            network_names = self.find_networks(tosca, vdu_name)
+            if network_names:
+                tosca_kube_obj.network_name = self.find_networks(tosca, vdu_name)
+                annotations_pad = '['
+                for idx, network in enumerate(network_names):
+                    if idx == 0:
+                        annotations_pad += '{"name":"' + network + '"}'
+                    else:
+                        annotations_pad += ', {"name":"' + network + '"}'
+                annotations_pad += ']'
+                tosca_kube_obj.annotations =\
+                    {'k8s.v1.cni.cncf.io/networks': annotations_pad}
 
             # If connection_point is True, Tacker will manage its service ip
             tosca_kube_obj.mgmt_connection_point = \
