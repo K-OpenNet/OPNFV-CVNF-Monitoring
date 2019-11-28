@@ -238,12 +238,6 @@ class Parser(object):
                         if key == 'network_name':
                             network_names.append(value)
 
-        if len(network_names) > 1:
-            # Currently, Kubernetes doesn't support multiple networks.
-            # If user provides more than one network, the error will raise.
-            # TODO(anyone): support Multus or multiple networking
-            LOG.debug("Kubernetes feature only support one network")
-            raise vnfm.InvalidKubernetesNetworkNumber
         if network_names:
             return network_names[0]
         else:
