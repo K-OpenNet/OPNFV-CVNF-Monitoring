@@ -34,6 +34,7 @@ class ToscaKubeObject(object):
         self._scaling_object = scaling_object
         self._service_type = service_type
         self._labels = labels
+        self._annotations = annotations
 
     @property
     def name(self):
