@@ -108,6 +108,9 @@ class ToscaKubeObject(object):
     def labels(self, labels):
         self._labels = labels
 
+    @property
+    def annotations(self):
+        return self._annotations
 
 class Container(object):
     """Container holds the basic structs of a container"""
